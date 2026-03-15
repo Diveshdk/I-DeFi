@@ -4,6 +4,8 @@ import "./globals.css";
 import Providers from "./providers";
 import Navbar from "./components/Navbar";
 import PriceTicker from "./components/PriceTicker";
+import EnsFlow from "./components/EnsFlow";
+import AppLayout from "./components/AppLayout";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,9 +26,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
         <Providers>
-          <PriceTicker />
-          <Navbar />
-          <main className="main-content">{children}</main>
+          <div className="app-shell">
+            <PriceTicker />
+            <Navbar />
+            <EnsFlow />
+            <AppLayout>{children}</AppLayout>
+          </div>
         </Providers>
       </body>
     </html>

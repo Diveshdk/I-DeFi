@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from "wagmi";
+import { useEnsIdentity } from "../hooks/useEnsIdentity";
 import { base, hardhat } from "wagmi/chains";
 
 const SUPPORTED_CHAINS = [base.id, hardhat.id];
@@ -16,6 +17,7 @@ function chainName(id: number): string {
 
 export default function ConnectWallet() {
   const { address, isConnected } = useAccount();
+  const { ensName } = useEnsIdentity();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
@@ -58,11 +60,14 @@ export default function ConnectWallet() {
       {!isWrongNetwork && (
         <button className="btn-connect btn-connect-connected" onClick={() => setOpen(!open)}>
           <span className="wallet-dot" />
-          {address?.slice(0, 6)}…{address?.slice(-4)}
+          {ensName ?? `${address?.slice(0, 6)}…${address?.slice(-4)}`}
         </button>
       )}
       {open && (
         <div className="wallet-dropdown">
+          {ensName && (
+            <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600, marginBottom: 4 }}>{ensName}</div>
+          )}
           <div className="wallet-addr">{address}</div>
           <div className="wallet-chain">
             <span style={{ color: chainId === base.id ? "var(--green)" : "var(--text-muted)" }}>

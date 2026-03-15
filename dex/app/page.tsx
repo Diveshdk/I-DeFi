@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
 import { ethers } from "ethers";
 import {
   TOKEN_LIST, SWAP_ROUTER, SWAP_ROUTER_ABI, QUOTER_V2, QUOTER_V2_ABI,
   ERC20_ABI, FEE_TIERS, FeeTier, basePublicClient,
-  Token, parseAmount, formatAmount, deadline,
+  Token, parseAmount, formatAmount,
 } from "./lib/contracts";
+import { getInjectedSigner, isUserRejection } from "./lib/injectedSigner";
 import { usePrices, formatUsd } from "./lib/priceService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -49,10 +50,7 @@ function PriceChange({ v }: { v: number }) {
 
 function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void }) {
   const { address, isConnected } = useAccount();
-  const { data: walletClient } = useWalletClient();
-  // NOTE: We use basePublicClient (a dedicated Base-mainnet viem client) for
-  // quoting — NOT wagmi's usePublicClient which follows the wallet chain.
-  // This guarantees quotes always work on Base even if wallet is on another chain.
+  // We use getInjectedSigner() so MetaMask (or the active wallet) opens when the user confirms. Rejection is handled and UI stays usable.
 
   const ids = useMemo(() => TOKEN_LIST.map(t => t.coingeckoId), []);
   const { prices } = usePrices(ids);
@@ -112,14 +110,18 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
   }, [amountIn, payToken, localToken, WETH.address]);
 
   const handleBuy = async () => {
-    if (!walletClient || !address || !localToken || !amountIn || quoteOut === "No liquidity" || !quoteOut) return;
+    if (!address || !localToken || !amountIn || quoteOut === "No liquidity" || !quoteOut) return;
     setLoading(true);
     setStatus(null);
     setTxHash(null);
 
     try {
-      const provider = new ethers.BrowserProvider(walletClient.transport);
-      const signer = await provider.getSigner();
+      const signer = await getInjectedSigner();
+      if (!signer) {
+        setStatus({ type: "error", msg: "Wallet not available. Unlock MetaMask or install an injected wallet." });
+        setLoading(false);
+        return;
+      }
       const MAX_UINT = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
       const isNativeETH = payToken === "ETH";
@@ -168,11 +170,11 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
 
       setStatus({ type: "success", msg: `✓ Bought ${quoteOut} ${localToken.symbol}!` });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Transaction failed";
-      if (msg.includes("user rejected") || msg.includes("User rejected")) {
-        setStatus({ type: "error", msg: "Transaction rejected." });
+      if (isUserRejection(err)) {
+        setStatus({ type: "error", msg: "Transaction rejected in wallet. You can try again." });
       } else {
-        setStatus({ type: "error", msg: msg.slice(0, 120) });
+        const msg = err instanceof Error ? err.message : String(err);
+        setStatus({ type: "error", msg: msg.slice(0, 120) || "Transaction failed." });
       }
     } finally {
       setLoading(false);
@@ -329,7 +331,7 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
         </div>
 
         <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-muted)", textAlign: "center" }}>
-          ⚡ Swaps execute on Uniswap V3 via Base network • 0.3% platform fee
+          ⚡ Swaps execute on Uniswap V3 via Base • Pool fee (to LPs, not CrossDEX)
         </div>
       </div>
     </div>
@@ -514,7 +516,7 @@ export default function HomePage() {
             CrossDEX Marketplace
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, margin: 0 }}>
-            Buy tokens instantly · 0.3% fee · No order book
+            Buy tokens instantly · Pool fee to LPs · No order book
           </p>
         </div>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -522,7 +524,7 @@ export default function HomePage() {
             { label: "Network", value: "Base" },
             { label: "Protocol", value: "Uniswap V3" },
             { label: "Tokens", value: String(TOKEN_LIST.length) },
-            { label: "Fee", value: "0.3%" },
+            { label: "Fee", value: "Pool (LPs)" },
           ].map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{s.value}</div>

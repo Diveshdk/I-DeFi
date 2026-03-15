@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo, Suspense } from "react";
-import { useAccount, usePublicClient, useWalletClient } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { useSearchParams } from "next/navigation";
 import { ethers } from "ethers";
 import {
   TOKEN_LIST, SWAP_ROUTER, SWAP_ROUTER_ABI, QUOTER_V2, QUOTER_V2_ABI,
   ERC20_ABI, FEE_TIERS, FeeTier, basePublicClient,
-  Token, formatAmount, parseAmount, deadline, getTokenByAddress,
+  Token, formatAmount, parseAmount, getTokenByAddress,
 } from "../lib/contracts";
-import { usePrices, tokenAmountToUsd, formatUsd } from "../lib/priceService";
+import { getInjectedSigner, isUserRejection } from "../lib/injectedSigner";
+import { usePrices, formatUsd } from "../lib/priceService";
 
 const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 const HISTORY_KEY = "crossdex_swap_history";
@@ -114,7 +115,6 @@ function TokenSelector({
 function SwapInner() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
   const searchParams = useSearchParams();
 
   const initialTokenIn = useMemo(() => {
@@ -181,16 +181,19 @@ function SwapInner() {
     return () => clearTimeout(timer);
   }, [amountIn, tokenIn, tokenOut, publicClient]);
 
-  // ── Swap handler ────────────────────────────────────────────────────────────
+  // ── Swap handler (uses injected provider so MetaMask opens; rejection keeps UI usable) ──
   const handleSwap = async () => {
-    if (!walletClient || !address || !amountIn || !quote) return;
+    if (!address || !amountIn || !quote) return;
     setLoading(true);
     setStatus(null);
     setTxHash(null);
 
     try {
-      const provider = new ethers.BrowserProvider(walletClient.transport);
-      const signer = await provider.getSigner();
+      const signer = await getInjectedSigner();
+      if (!signer) {
+        setStatus({ type: "error", msg: "Wallet not available. Unlock MetaMask or install an injected wallet." });
+        return;
+      }
       const amtIn = parseAmount(amountIn, tokenIn.decimals);
 
       // Apply slippage tolerance
@@ -249,11 +252,11 @@ function SwapInner() {
       setQuote(null);
       setTimeout(fetchBalances, 2000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Transaction failed";
-      if (msg.includes("user rejected") || msg.includes("User rejected")) {
-        setStatus({ type: "error", msg: "Transaction rejected by user." });
+      if (isUserRejection(err)) {
+        setStatus({ type: "error", msg: "Transaction rejected in wallet. You can try again." });
       } else {
-        setStatus({ type: "error", msg: msg.slice(0, 160) });
+        const msg = err instanceof Error ? err.message : String(err);
+        setStatus({ type: "error", msg: msg.slice(0, 160) || "Transaction failed." });
       }
     } finally {
       setLoading(false);
