@@ -14,6 +14,7 @@ import {
   NOTIFICATION_LABELS,
 } from "../lib/ens-preferences";
 import EditPreferencesModal from "../components/EditPreferencesModal";
+import { useTestMode } from "../contexts/TestModeContext";
 import Link from "next/link";
 
 interface SwapRecord {
@@ -24,10 +25,11 @@ interface SwapRecord {
   timestamp: number;
 }
 
-const HISTORY_KEY = "crossdex_swap_history";
-const FAVORITES_KEY = "crossdex_favorites";
+const HISTORY_KEY = "I-DeFI_swap_history";
+const FAVORITES_KEY = "I-DeFI_favorites";
+const TEST_TXS_KEY = "I-DeFI_test_txs";
 
-type AlertRule = { id: string; type: "portfolio" | "token"; threshold_usd: number; token_address?: string };
+type AlertRule = { id: string; type: "portfolio" | "token"; threshold_usd: number; token_address?: string; alert_on_drop_20?: boolean };
 
 export default function ProfilePage() {
   const { address, isConnected } = useAccount();
@@ -47,7 +49,10 @@ export default function ProfilePage() {
   const [alertType, setAlertType] = useState<"portfolio" | "token">("portfolio");
   const [alertThreshold, setAlertThreshold] = useState("");
   const [alertToken, setAlertToken] = useState(TOKEN_LIST[0]?.address ?? "");
+  const [alertOnDrop20, setAlertOnDrop20] = useState(true);
   const [alertSaving, setAlertSaving] = useState(false);
+  const { isTestMode } = useTestMode();
+  const [testTxs, setTestTxs] = useState<{ tokenIn: string; tokenOut: string; amountIn: string; amountOut: string; timestamp: number }[]>([]);
 
   useEffect(() => {
     try {
@@ -55,8 +60,10 @@ export default function ProfilePage() {
       if (raw) setHistory(JSON.parse(raw));
       const fav = localStorage.getItem(FAVORITES_KEY);
       if (fav) setFavorites(JSON.parse(fav));
+      const testRaw = localStorage.getItem(TEST_TXS_KEY);
+      if (testRaw) setTestTxs(JSON.parse(testRaw));
     } catch { /* ignore */ }
-  }, []);
+  }, [isTestMode]);
 
   const copyAddress = useCallback(() => {
     if (!address) return;
@@ -141,6 +148,7 @@ export default function ProfilePage() {
         type: alertType,
         threshold_usd: th,
         token_address: alertType === "token" ? alertToken : undefined,
+        alert_on_drop_20: alertType === "portfolio" ? alertOnDrop20 : undefined,
       };
       const res = await fetch("/api/alerts", {
         method: "POST",
@@ -155,7 +163,7 @@ export default function ProfilePage() {
     } finally {
       setAlertSaving(false);
     }
-  }, [ensName, alertRules, alertType, alertThreshold, alertToken]);
+  }, [ensName, alertRules, alertType, alertThreshold, alertToken, alertOnDrop20]);
 
   const removeAlertRule = useCallback(async (id: string) => {
     if (!ensName) return;
@@ -194,7 +202,7 @@ export default function ProfilePage() {
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 16px" }}>
       <div className="page-header">
         <h1>Profile</h1>
-        <p>Your swap history, preferences, and favorites on CrossDEX</p>
+        <p>Your swap history, preferences, and favorites on I-DeFI</p>
       </div>
 
       {/* ENS identity — show linked ENS or prompt to link */}
@@ -394,6 +402,16 @@ export default function ProfilePage() {
                 fontSize: 13,
               }}
             />
+            {alertType === "portfolio" && (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={alertOnDrop20}
+                  onChange={(e) => setAlertOnDrop20(e.target.checked)}
+                />
+                Also alert when portfolio drops 20%
+              </label>
+            )}
             <button
               type="button"
               className="btn-primary"
@@ -420,6 +438,7 @@ export default function ProfilePage() {
                 >
                   <span>
                     {r.type === "portfolio" ? "Portfolio" : TOKEN_LIST.find((t) => t.address === r.token_address)?.symbol ?? "Token"} below ${r.threshold_usd}
+                    {r.alert_on_drop_20 && r.type === "portfolio" && " · +20% drop alert"}
                   </span>
                   <button
                     type="button"
@@ -438,6 +457,30 @@ export default function ProfilePage() {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+      )}
+
+      {/* Test mode transactions (0.001 ETH → tokens recorded when test mode is on) */}
+      {(isTestMode || testTxs.length > 0) && (
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-title">Test transactions</div>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
+            In test mode, swaps and buys are recorded here (pay 0.001 ETH, tokens shown in profile). No real on-chain tx.
+          </p>
+          {testTxs.length === 0 ? (
+            <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No test transactions yet. Turn on Test mode and use Swap or Buy.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {testTxs.slice().reverse().map((tx, i) => (
+                <div key={`${tx.timestamp}-${i}`} style={{ padding: "10px 12px", background: "var(--bg-secondary)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
+                  <span style={{ fontWeight: 600 }}>{tx.amountIn} {tx.tokenIn}</span>
+                  <span style={{ color: "var(--text-muted)", margin: "0 6px" }}>→</span>
+                  <span style={{ fontWeight: 600, color: "var(--green)" }}>{tx.amountOut} {tx.tokenOut}</span>
+                  <span style={{ color: "var(--text-muted)", fontSize: 11, marginLeft: 8 }}>{new Date(tx.timestamp).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

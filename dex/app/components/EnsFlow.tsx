@@ -2,21 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useEnsIdentity } from "../hooks/useEnsIdentity";
+import { useTestMode } from "../contexts/TestModeContext";
 import EnsPromptModal from "./EnsPromptModal";
 import OnboardingQuestionnaire from "./OnboardingQuestionnaire";
 import { useRouter } from "next/navigation";
 
-const SKIP_ENS_KEY = "crossdex_ens_skipped";
+const SKIP_ENS_KEY = "I-DeFI_ens_skipped";
 
 /**
  * When wallet is connected:
  * - If no ENS resolved and not skipped → show prompt to enter ENS or register.
  * - If ENS but no profile → show onboarding questionnaire.
- * - On complete → refetch profile and go to feed.
+ * - In test mode: skip all instructions (no modal, no onboarding).
  */
 export default function EnsFlow() {
   const router = useRouter();
   const [skipped, setSkipped] = useState(false);
+  const { isTestMode } = useTestMode();
   const {
     address,
     ensName,
@@ -48,6 +50,7 @@ export default function EnsFlow() {
   };
 
   if (!address || loading) return null;
+  if (isTestMode) return null; // No ENS/onboarding instructions in test mode
   if (needsEnsInput && !skipped) {
     return (
       <EnsPromptModal

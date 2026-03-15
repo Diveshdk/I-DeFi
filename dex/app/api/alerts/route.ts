@@ -11,6 +11,10 @@ export type AlertRule = {
   type: "portfolio" | "token";
   threshold_usd: number;
   token_address?: string;
+  /** When true, also alert when portfolio drops 20% from previous check. (portfolio only) */
+  alert_on_drop_20?: boolean;
+  /** Last known value for 20% drop detection. Updated by check job. */
+  last_value?: number;
 };
 
 export type AlertRulesByEns = {
@@ -22,7 +26,7 @@ function normalizeEns(ens: string): string {
   return ens.trim().toLowerCase().replace(/\.eth$/, "") + ".eth";
 }
 
-async function readAll(): Promise<Record<string, AlertRulesByEns>> {
+export async function readAll(): Promise<Record<string, AlertRulesByEns>> {
   try {
     if (!existsSync(FILE_PATH)) return {};
     const raw = await readFile(FILE_PATH, "utf-8");
@@ -33,7 +37,7 @@ async function readAll(): Promise<Record<string, AlertRulesByEns>> {
   }
 }
 
-async function writeAll(data: Record<string, AlertRulesByEns>): Promise<void> {
+export async function writeAll(data: Record<string, AlertRulesByEns>): Promise<void> {
   if (!existsSync(DATA_DIR)) await mkdir(DATA_DIR, { recursive: true });
   await writeFile(FILE_PATH, JSON.stringify(data, null, 2), "utf-8");
 }
@@ -73,6 +77,8 @@ export async function POST(req: NextRequest) {
         type: r.type,
         threshold_usd: Number(r.threshold_usd) || 0,
         token_address: r.type === "token" ? r.token_address : undefined,
+        alert_on_drop_20: r.type === "portfolio" ? Boolean(r.alert_on_drop_20) : undefined,
+        last_value: typeof r.last_value === "number" ? r.last_value : undefined,
       }));
     data[key] = { ens_name: key, rules: validRules };
     await writeAll(data);

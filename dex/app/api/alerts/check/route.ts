@@ -1,24 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
-import type { AlertRulesByEns } from "../route";
+import type { AlertRule, AlertRulesByEns } from "../route";
+import { readAll, writeAll } from "../route";
 import { resolveEnsAddress, getEnsTextRecord, ENS_TEXT_EMAIL, ENS_TEXT_PHONE } from "../../../lib/ens";
 import { basePublicClient, TOKEN_LIST, ERC20_ABI } from "../../../lib/contracts";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const FILE_PATH = path.join(DATA_DIR, "alert-rules.json");
-
-async function readAll(): Promise<Record<string, AlertRulesByEns>> {
-  try {
-    if (!existsSync(FILE_PATH)) return {};
-    const raw = await readFile(FILE_PATH, "utf-8");
-    const data = JSON.parse(raw);
-    return typeof data === "object" && data !== null ? data : {};
-  } catch {
-    return {};
-  }
-}
 
 async function getPricesUsd(): Promise<Record<string, number>> {
   const ids = TOKEN_LIST.map((t) => t.coingeckoId).join(",");
@@ -125,6 +109,21 @@ export async function POST(req: NextRequest) {
       let currentValue = 0;
       if (rule.type === "portfolio") {
         currentValue = await getPortfolioValueUsd(address);
+        const prev = (rule as AlertRule).last_value;
+        if ((rule as AlertRule).alert_on_drop_20 && prev != null && prev > 0 && currentValue < prev * 0.8) {
+          const subject = "I-DeFI Alert: Portfolio dropped 20%";
+          const html = `
+            <p>Your I-DeFI alert triggered for <strong>${ensName}</strong>.</p>
+            <p><strong>Portfolio dropped 20%</strong> from previous check (was ~$${prev.toFixed(2)}, now ~$${currentValue.toFixed(2)}).</p>
+            <p>Verify your assets and links. Stay safe.</p>
+          `;
+          if (email) {
+            const ok = await sendEmail(email, subject, html);
+            if (ok) sent.push(`email:${email}(20% drop)`);
+            else errors.push(`Failed to send 20% drop email to ${email}`);
+          }
+        }
+        (rule as AlertRule).last_value = currentValue;
       } else if (rule.type === "token" && rule.token_address) {
         const token = TOKEN_LIST.find((t) => t.address.toLowerCase() === rule.token_address!.toLowerCase());
         const price = prices[rule.token_address.toLowerCase()] ?? 0;
@@ -145,9 +144,9 @@ export async function POST(req: NextRequest) {
       }
 
       if (currentValue < rule.threshold_usd) {
-        const subject = `CrossDEX Alert: ${rule.type === "portfolio" ? "Portfolio" : "Token"} below $${rule.threshold_usd}`;
+        const subject = `I-DeFI Alert: ${rule.type === "portfolio" ? "Portfolio" : "Token"} below $${rule.threshold_usd}`;
         const html = `
-          <p>Your CrossDEX alert triggered for <strong>${ensName}</strong>.</p>
+          <p>Your I-DeFI alert triggered for <strong>${ensName}</strong>.</p>
           <p><strong>Rule:</strong> ${rule.type === "portfolio" ? "Portfolio value" : "Token value"} below $${rule.threshold_usd}.</p>
           <p><strong>Current value:</strong> $${currentValue.toFixed(2)}</p>
           <p>Set your email/phone on your ENS at <a href="https://app.ens.domains">app.ens.domains</a> to receive these alerts.</p>
@@ -157,7 +156,6 @@ export async function POST(req: NextRequest) {
           if (ok) sent.push(`email:${email}`);
           else errors.push(`Failed to send email to ${email}`);
         }
-        // SMS: add Twilio here if TWILIO_* env vars are set
         if (phone) {
           errors.push("SMS not configured (set Twilio env vars for SMS)");
         }
@@ -167,5 +165,6 @@ export async function POST(req: NextRequest) {
     results.push({ ens: ensName, sent, errors });
   }
 
+  await writeAll(data);
   return NextResponse.json({ ok: true, results });
 }

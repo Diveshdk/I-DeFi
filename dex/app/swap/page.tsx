@@ -11,10 +11,13 @@ import {
 } from "../lib/contracts";
 import { getInjectedSigner, isUserRejection } from "../lib/injectedSigner";
 import { usePrices, formatUsd } from "../lib/priceService";
+import { useTestMode } from "../contexts/TestModeContext";
 
 const MAX_UINT256 = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-const HISTORY_KEY = "crossdex_swap_history";
-const SLIPPAGE_BPS = 50n; // 0.5% default slippage tolerance
+const HISTORY_KEY = "I-DeFI_swap_history";
+const TEST_TXS_KEY = "I-DeFI_test_txs";
+const SLIPPAGE_BPS = 50n;
+const TEST_MODE_PAY_ETH = "0.001"; // 0.5% default slippage tolerance
 
 interface QuoteResult {
   amountOut: bigint;
@@ -115,6 +118,7 @@ function TokenSelector({
 function SwapInner() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+  const { isTestMode } = useTestMode();
   const searchParams = useSearchParams();
 
   const initialTokenIn = useMemo(() => {
@@ -181,7 +185,7 @@ function SwapInner() {
     return () => clearTimeout(timer);
   }, [amountIn, tokenIn, tokenOut, publicClient]);
 
-  // ── Swap handler (uses injected provider so MetaMask opens; rejection keeps UI usable) ──
+  // ── Swap handler (test mode: record 0.001 ETH → proportional tokens in profile; no real tx) ──
   const handleSwap = async () => {
     if (!address || !amountIn || !quote) return;
     setLoading(true);
@@ -189,6 +193,29 @@ function SwapInner() {
     setTxHash(null);
 
     try {
+      if (isTestMode) {
+        const amtIn = parseAmount(amountIn, tokenIn.decimals);
+        const testPayEth = parseAmount(TEST_MODE_PAY_ETH, 18);
+        const amountOutProportional = amtIn > 0n ? (quote.amountOut * testPayEth) / amtIn : 0n;
+        const outFormatted = formatAmount(amountOutProportional, tokenOut.decimals, 4);
+        try {
+          const prev = JSON.parse(localStorage.getItem(TEST_TXS_KEY) ?? "[]") as { tokenIn: string; tokenOut: string; amountIn: string; amountOut: string; timestamp: number }[];
+          prev.push({
+            tokenIn: tokenIn.symbol,
+            tokenOut: tokenOut.symbol,
+            amountIn: TEST_MODE_PAY_ETH,
+            amountOut: outFormatted,
+            timestamp: Date.now(),
+          });
+          localStorage.setItem(TEST_TXS_KEY, JSON.stringify(prev.slice(-100)));
+        } catch { /* ignore */ }
+        setStatus({ type: "success", msg: `✓ Test: ${TEST_MODE_PAY_ETH} ETH → ${outFormatted} ${tokenOut.symbol} (see Profile)` });
+        setAmountIn("");
+        setQuote(null);
+        setLoading(false);
+        return;
+      }
+
       const signer = await getInjectedSigner();
       if (!signer) {
         setStatus({ type: "error", msg: "Wallet not available. Unlock MetaMask or install an injected wallet." });
@@ -240,7 +267,6 @@ function SwapInner() {
       const hash = (receipt?.hash ?? tx.hash) as string;
       setTxHash(hash);
 
-      // Save to swap history
       try {
         const prev = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]") as object[];
         prev.push({ hash, tokenIn: tokenIn.symbol, tokenOut: tokenOut.symbol, amountIn, timestamp: Date.now() });

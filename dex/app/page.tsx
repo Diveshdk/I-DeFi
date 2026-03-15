@@ -10,6 +10,7 @@ import {
 } from "./lib/contracts";
 import { getInjectedSigner, isUserRejection } from "./lib/injectedSigner";
 import { usePrices, formatUsd } from "./lib/priceService";
+import { useTestMode } from "./contexts/TestModeContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,8 +49,12 @@ function PriceChange({ v }: { v: number }) {
 
 // ── BUY MODAL ─────────────────────────────────────────────────────────────────
 
+const TEST_TXS_KEY = "I-DeFI_test_txs";
+const TEST_MODE_PAY_ETH = "0.001";
+
 function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void }) {
   const { address, isConnected } = useAccount();
+  const { isTestMode } = useTestMode();
   // We use getInjectedSigner() so MetaMask (or the active wallet) opens when the user confirms. Rejection is handled and UI stays usable.
 
   const ids = useMemo(() => TOKEN_LIST.map(t => t.coingeckoId), []);
@@ -116,6 +121,26 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
     setTxHash(null);
 
     try {
+      if (isTestMode) {
+        const numIn = Number(amountIn) || 1;
+        const numOut = Number(quoteOut) || 0;
+        const testOut = numIn > 0 ? ((numOut * 0.001) / numIn).toFixed(4) : "0";
+        try {
+          const prev = JSON.parse(localStorage.getItem(TEST_TXS_KEY) ?? "[]") as { tokenIn: string; tokenOut: string; amountIn: string; amountOut: string; timestamp: number }[];
+          prev.push({
+            tokenIn: payToken === "ETH" ? "ETH" : (payToken as Token).symbol,
+            tokenOut: localToken.symbol,
+            amountIn: TEST_MODE_PAY_ETH,
+            amountOut: testOut,
+            timestamp: Date.now(),
+          });
+          localStorage.setItem(TEST_TXS_KEY, JSON.stringify(prev.slice(-100)));
+        } catch { /* ignore */ }
+        setStatus({ type: "success", msg: `✓ Test: ${TEST_MODE_PAY_ETH} ETH → ${testOut} ${localToken.symbol} (see Profile)` });
+        setLoading(false);
+        return;
+      }
+
       const signer = await getInjectedSigner();
       if (!signer) {
         setStatus({ type: "error", msg: "Wallet not available. Unlock MetaMask or install an injected wallet." });
@@ -130,7 +155,6 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
       const amtIn = parseAmount(amountIn, decimalsIn);
       const tokenInSym = isNativeETH ? "ETH" : (payToken as Token).symbol;
 
-      // Approve ERC-20 if needed
       if (!isNativeETH) {
         const allowance = await basePublicClient.readContract({
           address: tokenInAddr as `0x${string}`,
@@ -145,7 +169,6 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
         }
       }
 
-      // V3 exactInputSingle
       const router = new ethers.Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, signer);
       const params = {
         tokenIn: tokenInAddr,
@@ -153,7 +176,7 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
         fee: bestFee,
         recipient: address,
         amountIn: amtIn,
-        amountOutMinimum: 0n, // user already saw the quote
+        amountOutMinimum: 0n,
         sqrtPriceLimitX96: 0n,
       };
       const tx = await router.exactInputSingle(params, isNativeETH ? { value: amtIn } : {});
@@ -163,9 +186,9 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
       setTxHash(hash);
 
       try {
-        const prev = JSON.parse(localStorage.getItem("crossdex_swap_history") ?? "[]") as object[];
+        const prev = JSON.parse(localStorage.getItem("I-DeFI_swap_history") ?? "[]") as object[];
         prev.push({ hash, tokenIn: tokenInSym, tokenOut: localToken.symbol, amountIn, timestamp: Date.now() });
-        localStorage.setItem("crossdex_swap_history", JSON.stringify(prev.slice(-50)));
+        localStorage.setItem("I-DeFI_swap_history", JSON.stringify(prev.slice(-50)));
       } catch { /* ignore */ }
 
       setStatus({ type: "success", msg: `✓ Bought ${quoteOut} ${localToken.symbol}!` });
@@ -331,7 +354,7 @@ function BuyModal({ token, onClose }: { token: MarketToken; onClose: () => void 
         </div>
 
         <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-muted)", textAlign: "center" }}>
-          ⚡ Swaps execute on Uniswap V3 via Base • Pool fee (to LPs, not CrossDEX)
+          ⚡ Swaps execute on Uniswap V3 via Base • Pool fee (to LPs, not I-DeFI)
         </div>
       </div>
     </div>
@@ -513,7 +536,7 @@ export default function HomePage() {
             ⚡ Base Network · Uniswap V3
           </div>
           <h1 style={{ fontSize: "clamp(18px, 3vw, 28px)", fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2 }}>
-            CrossDEX Marketplace
+            I-DeFI Marketplace
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, margin: 0 }}>
             Buy tokens instantly · Pool fee to LPs · No order book

@@ -3,8 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useEnsIdentity } from "../hooks/useEnsIdentity";
+import { useTestMode } from "../contexts/TestModeContext";
 import { usePrices, formatUsd } from "../lib/priceService";
 import { TOKEN_LIST } from "../lib/contracts";
+
+const DEMO_FEED_ITEMS = [
+  { id: "demo-1", type: "insight" as const, title: "Test mode feed", body: "Feed is open in test mode. Connect wallet and set up ENS in normal mode for a personalized feed.", createdAt: new Date().toISOString() },
+  { id: "demo-2", type: "narrative" as const, title: "Layer 2 narrative", body: "L2 ecosystems (Base, Arbitrum, Optimism) continue to capture volume and TVL.", tokens: ["WETH", "USDC"], createdAt: new Date().toISOString() },
+  { id: "demo-3", type: "insight" as const, title: "Market pulse", body: "Use Swap and Markets to try the app. Test transactions are recorded in Profile.", createdAt: new Date().toISOString() },
+];
 
 interface FeedItem {
   id: string;
@@ -20,6 +27,7 @@ interface FeedItem {
 
 export default function FeedPage() {
   const { address, ensName, profile, loading, needsOnboarding, needsEnsInput, updateWatchlist } = useEnsIdentity();
+  const { isTestMode } = useTestMode();
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [addingSymbol, setAddingSymbol] = useState<string | null>(null);
@@ -83,6 +91,32 @@ export default function FeedPage() {
         <Link href="/" className="btn-primary" style={{ display: "inline-block" }}>
           Connect wallet
         </Link>
+      </div>
+    );
+  }
+
+  if (isTestMode && (needsEnsInput || needsOnboarding || !profile)) {
+    return (
+      <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", padding: "0 16px" }}>
+        <div className="page-header" style={{ marginBottom: 24 }}>
+          <h1>Feed (test mode)</h1>
+          <p>Feed is open in test mode. Transactions you make will be recorded in Profile.</p>
+        </div>
+        <div style={{ display: "grid", gap: 24 }}>
+          {DEMO_FEED_ITEMS.map((item) => (
+            <div key={item.id} className="card" style={{ padding: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{item.title}</h3>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>{item.body}</p>
+              {item.tokens && (
+                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {item.tokens.map((sym) => (
+                    <Link key={sym} href="/swap" style={{ fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>{sym}</Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

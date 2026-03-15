@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { normalizeEnsName } from "../lib/ens";
 import type { EnsProfile } from "../lib/ens-preferences";
 
-const ENS_CACHE_KEY = "crossdex_ens_reverse_cache";
+const ENS_CACHE_KEY = "I-DeFI_ens_reverse_cache";
 const ENS_RESOLVE_TIMEOUT_MS = 12_000; // 12s then give up and inform user
 
 function getCachedEnsName(address: string): string | null {

@@ -5,7 +5,7 @@ const path = require("path");
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  CrossDEX Deployment Script");
+  console.log("  I-DeFI Deployment Script");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("Deployer  :", deployer.address);
   console.log("Network   :", network.name);

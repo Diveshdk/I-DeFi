@@ -11,6 +11,7 @@ const OVERVIEW_ITEMS = [
   { href: "/feed", label: "Feed", desc: "Personalized feed" },
   { href: "/portfolio", label: "Portfolio", desc: "Holdings" },
   { href: "/profile", label: "Profile", desc: "Preferences & ENS" },
+  { href: "/broadcast", label: "Emergency broadcast", desc: "Alert all ENS users" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

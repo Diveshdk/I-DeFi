@@ -97,7 +97,7 @@ export default function PoolsPage() {
     <div style={{ width: "100%", maxWidth: 760 }}>
       <div className="page-header">
         <h1>Pools</h1>
-        <p>All active liquidity pools on CrossDEX. Provide liquidity to earn fees.</p>
+        <p>All active liquidity pools on I-DeFI. Provide liquidity to earn fees.</p>
       </div>
 
       {loading ? (

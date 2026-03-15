@@ -5,6 +5,7 @@ import { hardhat, base, baseSepolia } from "wagmi/chains";
 import { injected, metaMask } from "wagmi/connectors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
+import { TestModeProvider } from "./contexts/TestModeContext";
 
 const config = createConfig({
   chains: [base, baseSepolia, hardhat],
@@ -32,7 +33,9 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        {children}
+        <TestModeProvider>
+          {children}
+        </TestModeProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

@@ -8,7 +8,7 @@ import { getInjectedSigner, isUserRejection } from "../lib/injectedSigner";
 import { usePrices, formatUsd } from "../lib/priceService";
 
 const WETH = TOKEN_LIST.find((t) => t.symbol === "WETH")!;
-const SEND_ENS_CACHE_KEY = "crossdex_send_ens_cache";
+const SEND_ENS_CACHE_KEY = "I-DeFI_send_ens_cache";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function isAddress(value: string): boolean {
