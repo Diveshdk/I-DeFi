@@ -30,5 +30,64 @@
     "watchlist": [],
     "created_at": "2026-03-14T21:45:47.902Z",
     "updated_at": "2026-03-14T21:45:47.902Z"
+  },
+  "addr:0x8bd4560342493f4297218a0f2136d1444978de44": {
+    "ens_name": "",
+    "wallet_address": "0x8bd4560342493f4297218a0f2136d1444978de44",
+    "preferences": {
+      "trading_style": "defi_yield_farmer",
+      "risk_level": "aggressive",
+      "sectors": [
+        "defi",
+        "layer2",
+        "nfts"
+      ],
+      "ecosystems": [
+        "ethereum",
+        "base",
+        "solana"
+      ],
+      "portfolio_size": "under_1k",
+      "signals": [
+        "onchain_analytics",
+        "narrative_trends",
+        "technical_analysis"
+      ],
+      "notifications": [
+        "daily_summary"
+      ]
+    },
+    "watchlist": [],
+    "created_at": "2026-03-15T07:31:51.639Z",
+    "updated_at": "2026-03-15T07:31:51.639Z"
+  },
+  "addr:0xad137c5a9647b0848ff5ca9027106bc0cee62dff": {
+    "ens_name": "",
+    "wallet_address": "0xad137c5a9647b0848ff5ca9027106bc0cee62dff",
+    "preferences": {
+      "trading_style": "ai_automation",
+      "risk_level": "high_risk",
+      "sectors": [
+        "defi",
+        "layer2",
+        "meme_coins"
+      ],
+      "ecosystems": [
+        "base"
+      ],
+      "portfolio_size": "1k_10k",
+      "signals": [
+        "onchain_analytics",
+        "narrative_trends",
+        "whale_activity"
+      ],
+      "notifications": [
+        "daily_summary",
+        "realtime_alerts"
+      ]
+    },
+    "watchlist": [],
+    "created_at": "2026-03-15T07:48:43.993Z",
+    "updated_at": "2026-03-15T07:48:43.993Z"
   }
 }
