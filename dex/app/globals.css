@@ -228,10 +228,10 @@ body::before {
   align-items: center;
 }
 
-/* ─── CMC-STYLE APP LAYOUT (left | center | right) ───────────────────────── */
+/* ─── APP LAYOUT (left sidebar | main) ───────────────────────────────────── */
 .app-layout {
   display: grid;
-  grid-template-columns: 220px 1fr 280px;
+  grid-template-columns: 220px 1fr;
   min-height: 100%;
   flex: 1;
   overflow: hidden;
@@ -245,10 +245,6 @@ body::before {
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border);
   overflow-y: auto;
-}
-.app-sidebar-right {
-  border-right: none;
-  border-left: 1px solid var(--border);
 }
 .app-sidebar-inner {
   padding: 16px 14px 24px;
@@ -268,7 +264,9 @@ body::before {
 }
 .app-sidebar-link {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
@@ -283,6 +281,17 @@ body::before {
   background: rgba(88,166,255,0.1);
   color: var(--accent);
 }
+.app-sidebar-link-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+.app-sidebar-link.active .app-sidebar-link-icon { opacity: 1; }
+.app-sidebar-link-text { display: flex; flex-direction: column; min-width: 0; }
 .app-sidebar-link-label { font-size: 14px; font-weight: 600; }
 .app-sidebar-link-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .app-sidebar-link.active .app-sidebar-link-desc { color: var(--text-secondary); }
@@ -326,12 +335,11 @@ body::before {
   z-index: 240;
 }
 @media (max-width: 1200px) {
-  .app-layout { grid-template-columns: 200px 1fr 240px; }
+  .app-layout { grid-template-columns: 200px 1fr; }
 }
 @media (max-width: 992px) {
   .app-layout { grid-template-columns: 1fr; }
   .app-sidebar-left { display: none; }
-  .app-sidebar-right { display: none; }
   .app-main { padding-left: 12px; padding-right: 12px; }
   .app-sidebar-toggle { display: flex; }
   .app-sidebar-overlay { display: block; }
@@ -350,6 +358,185 @@ body::before {
 @media (max-width: 576px) {
   .app-main { padding: 12px 10px 72px; }
 }
+
+/* ─── LAUNCHPAD PAGE (responsive, professional) ───────────────────────────── */
+.launchpad-page {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(12px, 3vw, 24px) clamp(12px, 4vw, 24px) 80px;
+}
+.launchpad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.launchpad-header-content { min-width: 0; }
+.launchpad-title {
+  font-size: clamp(1.5rem, 4vw, 1.75rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+.launchpad-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+.launchpad-header-cta {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.launchpad-error {
+  padding: 16px;
+  margin-bottom: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.launchpad-error p { color: var(--text-muted); font-size: 14px; margin: 0; }
+.launchpad-loading {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 24px 0;
+}
+.launchpad-section {
+  margin-bottom: 36px;
+}
+.launchpad-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+}
+.launchpad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+@media (max-width: 640px) {
+  .launchpad-grid { grid-template-columns: 1fr; gap: 16px; }
+}
+.launchpad-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.launchpad-card:hover {
+  border-color: rgba(88,166,255,0.25);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.launchpad-card-banner {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+.launchpad-card-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.launchpad-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: var(--text-muted);
+}
+.launchpad-card-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.launchpad-card-body {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.launchpad-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+.launchpad-card-symbol {
+  color: var(--accent);
+  font-weight: 600;
+}
+.launchpad-card-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.launchpad-card-date { color: var(--text-secondary); }
+.launchpad-card-creator {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.launchpad-card-progress-wrap { margin-bottom: 12px; }
+.launchpad-card-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.launchpad-card-progress-labels span:first-child { color: var(--text-muted); }
+.launchpad-card-progress-labels span:last-child { color: var(--text-primary); font-weight: 600; }
+.launchpad-card-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+.launchpad-card-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+.launchpad-card-cta {
+  margin-top: auto;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.launchpad-card-cta:hover {
+  background: rgba(88,166,255,0.85);
+  color: #fff;
+}
+.launchpad-empty {
+  padding: 32px;
+  text-align: center;
+}
+.launchpad-empty p { color: var(--text-muted); margin-bottom: 16px; }
+.launchpad-empty .btn-primary { padding: 12px 24px; }
 
 /* ─── CARDS ──────────────────────────────────────────────────────────────── */
 .card {

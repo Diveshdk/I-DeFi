@@ -1,0 +1,103 @@
+// Launchpad: projects, tokenomics, updates, social, roadmap.
+// Use SQLite for dev (DATABASE_URL="file:./dev.db") or PostgreSQL in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  name            String
+  symbol          String
+  description     String?
+  category        String?   // DeFi, NFT, Gaming, AI, Infrastructure, Media
+  image           String?   // logo URL
+  banner          String?   // banner URL
+  gallery         String?   // JSON array of image URLs
+  chain           String    @default("Base") // Base, Ethereum, Polygon, Arbitrum
+  standard        String    @default("ERC20") // ERC20, ERC721, ERC1155
+  contractType    String?   // Upgradeable Proxy, Non-Upgradeable
+  contractAddress String?   // deployed contract
+  creatorAddress  String
+  launchDate      DateTime?
+  launchTime      String?
+  endDate         DateTime?
+  vestingPeriod   String?
+  claimDate       DateTime?
+  saleType        String?   // public, whitelist, private
+  whitelistData   String?   // JSON or IPFS hash for wallet list
+  status          String    @default("draft") // draft, upcoming, live, ended
+  featured        Boolean   @default(false)
+  approved        Boolean   @default(false)
+  raisedAmount    String?   // e.g. "320" (ETH) for progress bar
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tokenomics  Tokenomics?
+  updates     Update[]
+  social      Social?
+  roadmap     RoadmapItem[]
+  documents   Document[]
+}
+
+model Tokenomics {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  totalSupply String?
+  tokenPrice  String?
+  softCap     String?
+  hardCap     String?
+  minBuy      String?
+  maxBuy      String?
+  publicSale  String?  // %
+  team        String?
+  marketing   String?
+  liquidity   String?
+  treasury    String?
+}
+
+model Update {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  image       String?
+  createdAt   DateTime @default(now())
+}
+
+model Social {
+  id         String  @id @default(cuid())
+  projectId  String  @unique
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  website    String?
+  twitter    String?
+  discord    String?
+  telegram   String?
+  github     String?
+  medium     String?
+}
+
+model RoadmapItem {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  quarter   String?  // e.g. Q1 2026
+  title     String
+  body      String?
+  sortOrder Int      @default(0)
+}
+
+model Document {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String  // whitepaper, litepaper, tokenomics, pitchdeck
+  url       String  // IPFS or Supabase URL
+  name      String?
+}

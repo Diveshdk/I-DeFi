@@ -398,6 +398,71 @@ function TokenRow({
   );
 }
 
+// ── LAUNCHPAD HOME SECTION ───────────────────────────────────────────────────
+
+function LaunchpadHomeSection() {
+  const [projects, setProjects] = useState<{ id: string; name: string; symbol: string; image: string | null; banner: string | null; status: string; launchDate: string | null; raisedAmount: string | null; tokenomics: { hardCap: string | null } | null }[]>([]);
+  useEffect(() => {
+    fetch("/api/launchpad/projects")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => setProjects([]));
+  }, []);
+  const live = projects.filter((p) => p.status === "live").slice(0, 3);
+  const upcoming = projects.filter((p) => p.status === "upcoming").slice(0, 3);
+  const list = [...live, ...upcoming].slice(0, 6);
+  if (list.length === 0) return null;
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <div className="section-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <span className="section-title">🚀 Launchpad</span>
+        <a href="/launchpad" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600 }}>View all →</a>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+        {list.map((p) => {
+          const hardCap = p.tokenomics?.hardCap ? parseFloat(p.tokenomics.hardCap) : 0;
+          const raised = p.raisedAmount ? parseFloat(p.raisedAmount) : 0;
+          const progress = hardCap > 0 ? Math.min(100, (raised / hardCap) * 100) : 0;
+          return (
+            <a
+              key={p.id}
+              href={`/launchpad/${p.id}`}
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                overflow: "hidden",
+                textDecoration: "none",
+                color: "inherit",
+                display: "block",
+              }}
+            >
+              <div style={{ height: 90, background: "var(--bg-input)" }}>
+                {p.banner || p.image ? (
+                  <img src={p.banner || p.image || ""} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "var(--text-muted)" }}>🚀</div>
+                )}
+              </div>
+              <div style={{ padding: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name} ({p.symbol})</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{p.status} · {p.launchDate ? new Date(p.launchDate).toLocaleDateString() : "—"}</div>
+                {hardCap > 0 && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ height: 4, borderRadius: 2, background: "var(--bg-input)", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${progress}%`, background: "var(--accent)", borderRadius: 2 }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ── SECTION ───────────────────────────────────────────────────────────────────
 
 function Section({
@@ -536,10 +601,10 @@ export default function HomePage() {
             ⚡ Base Network · Uniswap V3
           </div>
           <h1 style={{ fontSize: "clamp(18px, 3vw, 28px)", fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2 }}>
-            I-DeFI Marketplace
+            I-DeFI
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, margin: 0 }}>
-            Buy tokens instantly · Pool fee to LPs · No order book
+            DEX & DeFi marketplace on Base · Swap, buy, launchpad, send to ENS
           </p>
         </div>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -670,6 +735,9 @@ export default function HomePage() {
           })}
         </div>
       </div>
+
+      {/* Launchpad section */}
+      <LaunchpadHomeSection />
 
       {/* BUY MODAL */}
       {buyToken && <BuyModal token={buyToken} onClose={() => setBuyToken(null)} />}

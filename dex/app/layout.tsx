@@ -14,8 +14,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "I-DeFI — Decentralised Exchange",
-  description: "Uniswap V2-style AMM. Swap real tokens, add liquidity, and earn fees — fully on-chain.",
+  title: "I-DeFI — DEX & DeFi Marketplace on Base",
+  description: "Swap tokens, buy on Uniswap V3, send to ENS, launch tokens on the launchpad, and get portfolio alerts. DEX and DeFi hub on Base.",
 };
 
 export default function RootLayout({

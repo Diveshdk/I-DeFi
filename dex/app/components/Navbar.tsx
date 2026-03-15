@@ -17,7 +17,7 @@ export default function Navbar() {
     <header className="navbar" style={{ justifyContent: "space-between" }}>
       <Link href="/" className="navbar-brand">
         <div className="navbar-logo">⚡</div>
-        <span className="navbar-name">Cross<span>DEX</span></span>
+        <span className="navbar-name">I-<span>DeFi</span></span>
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {mounted && (
